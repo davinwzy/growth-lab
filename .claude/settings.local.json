@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(lsof:*)",
+      "Bash(du:*)",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:apaulliao.github.io)",
+      "Bash(gh api:*)",
+      "Bash(curl:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
