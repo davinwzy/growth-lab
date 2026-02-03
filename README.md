@@ -108,6 +108,12 @@ npm run dev
 
 ---
 
+## Roadmap
+
+查看完整的开发历程和未来规划：[ROADMAP.md](./ROADMAP.md)
+
+---
+
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
