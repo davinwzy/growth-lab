@@ -73,7 +73,7 @@ export function applyPositiveScore(
   const oldLevel = getLevelForXp(gam.xp);
   const newLevel = getLevelForXp(newXp);
 
-  let next = {
+  let next: StudentGamification = {
     ...gam,
     xp: newXp,
     level: newLevel.level,
@@ -122,7 +122,7 @@ export function applyRewardRedemption(
   gam: StudentGamification,
   ctx: ApplyContext
 ): { gam: StudentGamification; events: GamificationEventDraft[] } {
-  let next = {
+  let next: StudentGamification = {
     ...gam,
     rewardRedeemedCount: gam.rewardRedeemedCount + 1,
   };
@@ -158,7 +158,7 @@ export function applyAttendanceToday(
   const oldLevel = getLevelForXp(gam.xp);
   const newLevel = getLevelForXp(newXp);
 
-  let next = {
+  let next: StudentGamification = {
     ...gam,
     xp: newXp,
     level: newLevel.level,
@@ -216,7 +216,7 @@ export function applyAttendanceMakeup(
   const oldLevel = getLevelForXp(gam.xp);
   const newLevel = getLevelForXp(newXp);
 
-  let next = {
+  let next: StudentGamification = {
     ...gam,
     xp: newXp,
     level: newLevel.level,
@@ -254,7 +254,7 @@ export function applyAttendanceRevoke(
   todayStr: string
 ): StudentGamification {
   const newXp = Math.max(0, gam.xp - 1);
-  let next = {
+  let next: StudentGamification = {
     ...gam,
     xp: newXp,
     level: getLevelForXp(newXp).level,

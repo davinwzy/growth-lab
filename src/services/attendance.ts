@@ -29,7 +29,6 @@ export function getAttendanceRecordForStudent(
 
 export function getWeekendDatesForMonth(year: number, monthIndex: number): string[] {
   const dates: string[] = [];
-  const firstDay = new Date(year, monthIndex, 1);
   const lastDay = new Date(year, monthIndex + 1, 0);
   for (let d = 1; d <= lastDay.getDate(); d++) {
     const date = new Date(year, monthIndex, d);
