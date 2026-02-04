@@ -33,17 +33,17 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-16">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-slate-900/65"
         onClick={onClose}
       />
-      <div className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-auto`}>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+      <div className={`relative clay-card w-full ${sizeClasses[size]} max-h-[85vh] overflow-auto`}>
+        <div className="flex items-center justify-between p-4 border-b border-white/70">
+          <h2 className="text-lg font-semibold text-gray-900 lab-modal-title">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-1 hover:bg-white/80 rounded-full transition-colors"
           >
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

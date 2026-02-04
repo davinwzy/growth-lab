@@ -68,6 +68,7 @@ function AppContent() {
     return map;
   }, [currentStudents, getGamification]);
 
+
   const getGroupStudents = (groupId: string) => {
     return currentStudents.filter(s => s.groupId === groupId);
   };
@@ -130,49 +131,80 @@ function AppContent() {
     setShowBadgeCollection(true);
   };
 
+  const handleScrollToProgress = () => {
+    document.getElementById('lab-progress-demo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleCreateClass = () => {
+    const trigger = document.getElementById('class-selector-new');
+    if (trigger) {
+      trigger.click();
+    } else {
+      handleScrollToProgress();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen lab-surface lab-strong-text">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-white/60 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
-                {t('班级管理系统', 'Class Management')}
-              </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-2xl bg-white shadow-md flex items-center justify-center text-xl">
+                🧪
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-lg font-bold font-display text-slate-900">
+                  {t('成长实验室', 'Growth Lab')}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Growing together, one step at a time.
+                </div>
+              </div>
               <ClassSelector />
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="ghost" size="sm" onClick={() => setShowGroupManager(true)}>
-                {t('组别', 'Groups')}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowDashboard(true)}
+                className="btn-highlight hover:brightness-105"
+              >
+                {t('展示', 'Dashboard')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowStudentManager(true)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAttendance(true)}
+                className="btn-highlight hover:brightness-105"
+              >
+                {t('出勤', 'Attendance')}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowStudentManager(true)}>
                 {t('学生', 'Students')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowScoreItemManager(true)}>
-                {t('加减分项', 'Score Items')}
+              <Button variant="secondary" size="sm" onClick={() => setShowGroupManager(true)}>
+                {t('组别', 'Groups')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowRewardManager(true)}>
-                {t('礼物', 'Rewards')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowBadgeManager(true)}>
+              <Button variant="secondary" size="sm" onClick={() => setShowBadgeManager(true)}>
                 {t('成就', 'Badges')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowHistory(true)}>
-                {t('历史', 'History')}
-              </Button>
-              <Button variant="success" size="sm" onClick={() => setShowAttendance(true)}>
-                {t('出勤', 'Attendance')}
+              <Button variant="secondary" size="sm" onClick={() => setShowRewardManager(true)}>
+                {t('礼物', 'Rewards')}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setShowSettlement(true)}>
                 {t('结算', 'Settle')}
               </Button>
-              <Button variant="primary" size="sm" onClick={() => setShowDashboard(true)}>
-                {t('展示', 'Dashboard')}
+              <Button variant="secondary" size="sm" onClick={() => setShowScoreItemManager(true)}>
+                {t('加减分项', 'Score Items')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
-                ⚙️
+              <Button variant="secondary" size="sm" onClick={() => setShowHistory(true)}>
+                {t('历史', 'History')}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowSettings(true)}>
+                {t('设置', 'Settings')}
               </Button>
               <LanguageSwitch />
             </div>
@@ -183,33 +215,99 @@ function AppContent() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 pb-24">
         {!state.currentClassId ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📚</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {t('欢迎使用班级管理系统', 'Welcome to Class Management System')}
-            </h2>
-            <p className="text-gray-500">
-              {t('请先创建或选择一个班级开始使用', 'Please create or select a class to get started')}
-            </p>
+          <div className="space-y-8">
+            <section className="clay-card lab-hero p-6 md:p-10 grid gap-6 md:grid-cols-[1.1fr,0.9fr] lab-animate">
+              <div className="space-y-4">
+                <span className="lab-badge">{t('成长实验室', 'GROWTH LAB')}</span>
+                <h2 className="text-3xl md:text-4xl font-display text-slate-900">
+                  {t('成长实验室', 'Growth Lab')}
+                </h2>
+                <p className="text-lg font-semibold text-slate-700">
+                  Growing together, one step at a time.
+                </p>
+                <p className="text-slate-600">
+                  {t('把努力变成实验，把进步变成结果', 'Turn effort into experiments and progress into results.')}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="primary" onClick={handleCreateClass}>
+                    {t('创建班级', 'Create Class')}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span className="clay-pill px-3 py-1">{t('挑战', 'Challenges')}</span>
+                  <span className="clay-pill px-3 py-1">{t('成长轨迹', 'Growth Path')}</span>
+                  <span className="clay-pill px-3 py-1">{t('奖励解锁', 'Rewards')}</span>
+                </div>
+              </div>
+              <div id="lab-progress-demo" className="clay-card-soft p-5 space-y-4 lab-animate lab-animate-delay-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-slate-800">
+                    {t('成长轨迹一目了然', 'Progress at a glance')}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {t('今日进度 70%', 'Today 70%')}
+                  </div>
+                </div>
+                <div className="lab-progress-track">
+                  <div className="lab-progress-fill" style={{ width: '70%' }} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="lab-kpi">
+                    <div className="text-xs text-slate-500">{t('本周成长', 'Weekly Growth')}</div>
+                    <div className="text-xl font-bold text-sky-600">+120</div>
+                  </div>
+                  <div className="lab-kpi">
+                    <div className="text-xs text-slate-500">{t('连续挑战', 'Streaks')}</div>
+                    <div className="text-xl font-bold text-emerald-600">4</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
           </div>
         ) : currentGroups.length === 0 && !state.onboardingStep ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">👥</div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {t('该班级还没有组别', 'This class has no groups yet')}
-            </h2>
-            <p className="text-gray-500 mb-4">
-              {t('请先创建组别，然后添加学生', 'Please create groups first, then add students')}
-            </p>
-            <Button onClick={() => setShowGroupManager(true)}>
-              {t('创建组别', 'Create Groups')}
-            </Button>
+          <div className="space-y-6">
+            <section className="clay-card lab-hero p-6 md:p-8 text-center space-y-3">
+              <div className="text-4xl">🧪</div>
+              <h2 className="text-2xl font-display text-slate-900">
+                {t('实验室准备好了，只差你的分组', 'Your lab is ready for teams')}
+              </h2>
+              <p className="text-slate-600">
+                {t('创建组别后即可开始记录成长', 'Create groups to start tracking progress')}
+              </p>
+              <Button onClick={() => setShowGroupManager(true)}>
+                {t('创建组别', 'Create Groups')}
+              </Button>
+            </section>
+            <section className="clay-card-soft p-5 space-y-4" id="lab-progress-demo">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-800">
+                  {t('成长轨迹一目了然', 'Progress at a glance')}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {t('今日进度 70%', 'Today 70%')}
+                </div>
+              </div>
+              <div className="lab-progress-track">
+                <div className="lab-progress-fill" style={{ width: '70%' }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="lab-kpi">
+                  <div className="text-xs text-slate-500">{t('本周成长', 'Weekly Growth')}</div>
+                  <div className="text-xl font-bold text-sky-600">+120</div>
+                </div>
+                <div className="lab-kpi">
+                  <div className="text-xs text-slate-500">{t('连续挑战', 'Streaks')}</div>
+                  <div className="text-xl font-bold text-emerald-600">4</div>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <>
             {/* Batch Operation Bar */}
             {selectionMode && (
-              <div className="bg-blue-500 text-white rounded-lg p-3 mb-4 flex items-center justify-between">
+              <div className="clay-card p-3 mb-4 flex items-center justify-between bg-white/80">
                 <div className="flex items-center gap-4">
                   <span>
                     {t(`已选择 ${selectedStudentIds.size} 名学生`, `${selectedStudentIds.size} students selected`)}
@@ -218,7 +316,7 @@ function AppContent() {
                     variant="ghost"
                     size="sm"
                     onClick={handleSelectAll}
-                    className="!text-white hover:!bg-white/20"
+                    className="!text-slate-700 hover:!bg-white/70"
                   >
                     {selectedStudentIds.size === currentStudents.length
                       ? t('取消全选', 'Deselect All')
@@ -230,7 +328,7 @@ function AppContent() {
                     variant="ghost"
                     size="sm"
                     onClick={exitSelectionMode}
-                    className="!text-white hover:!bg-white/20"
+                    className="!text-slate-700 hover:!bg-white/70"
                   >
                     {t('取消', 'Cancel')}
                   </Button>
@@ -239,7 +337,7 @@ function AppContent() {
             )}
 
             {/* Group Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {currentGroups.map(group => (
                 <GroupCard
                   key={group.id}
@@ -256,7 +354,7 @@ function AppContent() {
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-white rounded-full shadow-lg px-4 py-2">
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 clay-pill px-4 py-2 backdrop-blur">
               {!selectionMode ? (
                 <>
                   <Button

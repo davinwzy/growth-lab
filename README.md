@@ -1,8 +1,8 @@
-# 班级管理系统 Class Management System
+# 成长实验室 Growth Lab
 
 一个为教师设计的游戏化班级管理工具，让课堂管理更轻松有趣。
 
-🔗 **在线体验**: [https://davinwzy.github.io/class-management-system/](https://davinwzy.github.io/class-management-system/)
+🔗 **在线体验**: [https://davinwzy.github.io/growth-lab/](https://davinwzy.github.io/growth-lab/)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-19-61DAFB.svg)
@@ -66,7 +66,7 @@
 
 ### 在线使用（推荐）
 
-直接访问：[https://davinwzy.github.io/class-management-system/](https://davinwzy.github.io/class-management-system/)
+直接访问：[https://davinwzy.github.io/growth-lab/](https://davinwzy.github.io/growth-lab/)
 
 无需安装，打开即用！
 
@@ -74,10 +74,10 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/davinwzy/class-management-system.git
+git clone https://github.com/davinwzy/growth-lab.git
 
 # 进入目录
-cd class-management-system
+cd growth-lab
 
 # 安装依赖
 npm install
@@ -86,7 +86,7 @@ npm install
 npm run dev
 ```
 
-然后打开 http://localhost:5173/class-management-system/
+然后打开 http://localhost:5173/growth-lab/
 
 ---
 
@@ -100,17 +100,48 @@ npm run dev
 
 ---
 
-## 数据安全
+## 项目结构
+
+- `src/app` 全局状态与应用入口
+- `src/features` 功能模块（班级、学生、出勤、奖励等）
+- `src/shared` 通用组件与工具
+- `src/styles` 全局样式与主题
+- `public` 静态资源
+
+---
+
+## 常用脚本
+
+- `npm run dev` 本地开发
+- `npm run build` 生产构建
+- `npm run preview` 预览构建结果
+- `npm run lint` 代码规范检查
+- `npm run test` 单元测试
+- `npm run deploy` 部署到 GitHub Pages
+
+---
+
+## 数据与隐私
 
 - 所有数据存储在**你的浏览器本地**
 - 不会上传到任何服务器
 - 建议定期使用「导出数据」功能备份
+- 清理浏览器数据会导致本地记录丢失
+- `STORAGE_KEY` 保持稳定以保护历史数据（修改需要迁移策略）
 
 ---
 
-## Roadmap
+## Architecture
 
-查看完整的开发历程和未来规划：[ROADMAP.md](./ROADMAP.md)
+系统架构与数据流说明见：[ARCHITECTURE.md](./ARCHITECTURE.md)
+
+---
+
+## 部署说明
+
+- 默认通过 GitHub Actions 自动部署到 GitHub Pages
+- 发布前可先执行 `npm run build` 进行本地验证
+- `package.json` 中的 `homepage` 需与仓库 Pages 地址一致
 
 ---
 

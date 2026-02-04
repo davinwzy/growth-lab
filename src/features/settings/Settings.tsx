@@ -140,7 +140,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
         {/* About */}
         <div className="pt-4 border-t text-center text-sm text-gray-500">
-          <p>{t('班级管理系统', 'Class Management System')} v1.0</p>
+          <p>{t('成长实验室', 'Growth Lab')} v1.0</p>
           <p>{t('数据存储在浏览器本地', 'Data stored in browser locally')}</p>
         </div>
       </div>

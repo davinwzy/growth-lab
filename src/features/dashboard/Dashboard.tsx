@@ -117,52 +117,105 @@ export function Dashboard({ isOpen, onClose }: DashboardProps) {
     return `${index + 1}`;
   };
 
-  const renderPodium = (
-    items: Array<{ id: string; name: string; score: number }>,
-    mode: 'weekly' | 'total'
-  ) => {
+  type PodiumItem = { id: string; name: string; score: number; color?: string };
+
+  const hexToRgb = (hex?: string) => {
+    if (!hex) return null;
+    const clean = hex.replace('#', '').trim();
+    if (clean.length !== 3 && clean.length !== 6) return null;
+    const full = clean.length === 3
+      ? clean.split('').map(char => char + char).join('')
+      : clean;
+    const int = parseInt(full, 16);
+    if (Number.isNaN(int)) return null;
+    return {
+      r: (int >> 16) & 255,
+      g: (int >> 8) & 255,
+      b: int & 255,
+    };
+  };
+
+  const mixWithWhite = (rgb: { r: number; g: number; b: number }, ratio: number) => ({
+    r: Math.round(rgb.r + (255 - rgb.r) * ratio),
+    g: Math.round(rgb.g + (255 - rgb.g) * ratio),
+    b: Math.round(rgb.b + (255 - rgb.b) * ratio),
+  });
+
+  const getBadgeTextColor = (rgb: { r: number; g: number; b: number }) => {
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return luminance > 0.6 ? '#1F2937' : '#FFFFFF';
+  };
+
+  const getPodiumPalette = (hex?: string) => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const light = mixWithWhite(rgb, 0.78);
+    const mid = mixWithWhite(rgb, 0.55);
+    const border = mixWithWhite(rgb, 0.68);
+    const badge = mixWithWhite(rgb, 0.15);
+    return {
+      cardBg: `linear-gradient(180deg, rgba(${light.r}, ${light.g}, ${light.b}, 0.95) 0%, rgba(${mid.r}, ${mid.g}, ${mid.b}, 0.7) 100%)`,
+      borderColor: `rgba(${border.r}, ${border.g}, ${border.b}, 0.7)`,
+      badgeBg: `rgb(${badge.r}, ${badge.g}, ${badge.b})`,
+      badgeText: getBadgeTextColor(badge),
+    };
+  };
+
+  const renderPodium = (items: PodiumItem[], mode: 'weekly' | 'total') => {
     const slots = [
       {
         rank: 2,
         heightClass: 'h-24 sm:h-28 md:h-32',
         widthClass: 'w-32 sm:w-40 md:w-52',
-        bgClass: 'bg-gradient-to-b from-slate-100 to-slate-200',
-        badgeClass: 'bg-slate-200 text-slate-700',
+        bgClass: 'bg-gradient-to-b from-white/90 to-sky-100/70',
+        badgeClass: 'bg-white text-sky-700',
         edgeClass: 'rounded-l-3xl',
       },
       {
         rank: 1,
         heightClass: 'h-32 sm:h-40 md:h-44',
         widthClass: 'w-36 sm:w-48 md:w-60',
-        bgClass: 'bg-gradient-to-b from-amber-200 to-amber-300 ring-2 ring-amber-300/70',
-        badgeClass: 'bg-amber-300 text-amber-900',
+        bgClass: 'bg-gradient-to-b from-amber-100 to-amber-200 ring-2 ring-amber-200/70',
+        badgeClass: 'bg-amber-200 text-amber-900',
         edgeClass: '',
       },
       {
         rank: 3,
         heightClass: 'h-20 sm:h-24 md:h-28',
         widthClass: 'w-32 sm:w-40 md:w-52',
-        bgClass: 'bg-gradient-to-b from-orange-200 to-orange-300',
-        badgeClass: 'bg-orange-200 text-orange-900',
+        bgClass: 'bg-gradient-to-b from-orange-100 to-rose-100',
+        badgeClass: 'bg-orange-100 text-orange-900',
         edgeClass: 'rounded-r-3xl',
       },
     ];
 
     return (
-      <div className="flex items-end justify-center pt-10">
+      <div className="relative flex items-end justify-center pt-12">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-3 w-[88%] rounded-full bg-white/80 shadow-md" />
         {slots.map((slot, index) => {
           const item = items[slot.rank - 1];
           if (!item) return null;
           const hasPrev = index > 0 && Boolean(items[slots[index - 1].rank - 1]);
           const joinClass = hasPrev ? '-ml-px' : '';
           const displayScore = mode === 'weekly' ? `+${item.score}` : `${item.score}`;
+          const palette = getPodiumPalette(item.color);
+          const cardStyle = palette
+            ? { background: palette.cardBg, borderColor: palette.borderColor }
+            : undefined;
+          const badgeStyle = palette
+            ? { background: palette.badgeBg, color: palette.badgeText }
+            : undefined;
 
           return (
             <div
               key={item.id}
-              className={`relative ${slot.widthClass} ${slot.heightClass} ${slot.bgClass} ${slot.edgeClass} ${joinClass} border border-white/70 shadow-lg shadow-slate-200/70 flex flex-col items-center justify-end pb-3 px-2`}
+              className={`relative ${slot.widthClass} ${slot.heightClass} ${palette ? '' : slot.bgClass} ${slot.edgeClass} ${joinClass} clay-card-soft flex flex-col items-center justify-end pb-3 px-2`}
+              style={cardStyle}
             >
-              <div className={`absolute -top-6 left-1/2 -translate-x-1/2 w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold shadow-md ${slot.badgeClass}`}>
+              <div
+                className={`absolute -top-6 left-1/2 -translate-x-1/2 w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold shadow-md ${palette ? '' : slot.badgeClass}`}
+                style={badgeStyle}
+              >
                 {slot.rank}
               </div>
               <div className="text-center">
@@ -181,20 +234,23 @@ export function Dashboard({ isOpen, onClose }: DashboardProps) {
   const weekLabel = `${weekRange.start.toLocaleDateString()} - ${new Date(weekRange.end.getTime() - 1).toLocaleDateString()}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-sky-100 via-white to-amber-50 text-slate-800 overflow-auto">
+    <div className="fixed inset-0 z-50 lab-surface text-slate-800 overflow-auto">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-sm">
+      <div className="sticky top-0 z-50 bg-white/85 backdrop-blur border-b border-white/70 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 bg-teal-400 rounded-2xl flex items-center justify-center shadow-lg text-white">
+            <div className="h-12 w-12 bg-sky-400 rounded-2xl flex items-center justify-center shadow-lg text-white">
               <span className="text-2xl">🏫</span>
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold font-display text-slate-900">
-                {currentClass?.name || t('班级管理系统', 'Class Management System')}
+                {currentClass?.name || t('成长实验室', 'Growth Lab')}
               </h1>
-              <p className="text-teal-600 font-semibold text-xs tracking-[0.2em]">
-                {t('趣味排行榜', 'FUN LEADERBOARD')}
+              <p className="text-sky-600 font-semibold text-xs tracking-[0.2em]">
+                {t('成长排行榜', 'GROWTH LAB')}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Growing together, one step at a time.
               </p>
             </div>
           </div>
@@ -278,6 +334,7 @@ export function Dashboard({ isOpen, onClose }: DashboardProps) {
                         id: group.id,
                         name: group.name,
                         score: group.weekScore,
+                        color: group.color,
                       })),
                       'weekly'
                     )
@@ -286,6 +343,7 @@ export function Dashboard({ isOpen, onClose }: DashboardProps) {
                         id: group.id,
                         name: group.name,
                         score: group.totalScore,
+                        color: group.color,
                       })),
                       'total'
                     )}
@@ -387,19 +445,27 @@ export function Dashboard({ isOpen, onClose }: DashboardProps) {
               <div className="mb-8 relative z-10">
                 {studentRankingTab === 'total'
                   ? renderPodium(
-                      totalStudentRankings.slice(0, 3).map(student => ({
-                        id: student.id,
-                        name: student.name,
-                        score: student.score,
-                      })),
+                      totalStudentRankings.slice(0, 3).map(student => {
+                        const group = getStudentGroup(student.id);
+                        return {
+                          id: student.id,
+                          name: student.name,
+                          score: student.score,
+                          color: group?.color,
+                        };
+                      }),
                       'total'
                     )
                   : renderPodium(
-                      weeklyStudentRankings.slice(0, 3).map(student => ({
-                        id: student.id,
-                        name: student.name,
-                        score: student.weekScore,
-                      })),
+                      weeklyStudentRankings.slice(0, 3).map(student => {
+                        const group = getStudentGroup(student.id);
+                        return {
+                          id: student.id,
+                          name: student.name,
+                          score: student.weekScore,
+                          color: group?.color,
+                        };
+                      }),
                       'weekly'
                     )}
               </div>

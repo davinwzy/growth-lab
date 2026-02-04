@@ -28,9 +28,9 @@ export function GroupCard({
   const groupScore = group.score || 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="clay-card overflow-hidden">
       <div
-        className="px-4 py-3 cursor-pointer hover:opacity-90 transition-opacity"
+        className="px-4 py-4 cursor-pointer hover:opacity-95 transition-opacity lab-card-head"
         style={{ backgroundColor: group.color }}
         onClick={() => onGroupClick(group)}
       >
@@ -42,7 +42,7 @@ export function GroupCard({
           </div>
         </div>
       </div>
-      <div className="p-2 space-y-2">
+      <div className="p-3 space-y-2">
         {students.length === 0 ? (
           <div className="text-center text-gray-400 py-4 text-sm">
             {t('暂无学生', 'No students')}

@@ -34,17 +34,17 @@ export function StudentCard({
   return (
     <div
       onClick={handleClick}
-      className={`px-3 py-2 rounded-lg cursor-pointer transition-all ${
+      className={`px-3 py-2 rounded-xl cursor-pointer transition-all clay-card-soft ${
         isSelected
-          ? 'bg-blue-100 ring-2 ring-blue-500'
-          : 'bg-gray-50 hover:bg-gray-100'
+          ? 'ring-2 ring-[var(--lab-blue)]'
+          : 'hover:shadow-md'
       }`}
     >
       <div className="flex items-center gap-2">
         {selectionMode && (
           <div
             className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
-              isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+              isSelected ? 'bg-[var(--lab-blue)] border-[var(--lab-blue)]' : 'border-gray-300'
             }`}
           >
             {isSelected && (
@@ -76,7 +76,7 @@ export function StudentCard({
         )}
         <span
           className={`text-lg font-bold ${
-            student.score >= 0 ? 'text-green-600' : 'text-red-600'
+            student.score >= 0 ? 'text-emerald-600' : 'text-rose-500'
           }`}
         >
           {student.score}

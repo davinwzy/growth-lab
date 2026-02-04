@@ -13,7 +13,7 @@ export function LanguageSwitch() {
   return (
     <button
       onClick={toggleLanguage}
-      className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+      className="btn-base btn-secondary px-3 py-1.5 text-xs"
     >
       {state.language === 'zh-CN' ? 'EN' : '中'}
     </button>

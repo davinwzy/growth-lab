@@ -65,7 +65,7 @@ export function ClassSelector() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 transition-colors min-w-[150px]"
+          className="flex items-center gap-2 px-4 py-2 lab-select hover:bg-white/90 transition-colors min-w-[150px]"
         >
           <span className="font-medium">
             {currentClass ? currentClass.name : t('选择班级', 'Select Class')}
@@ -74,7 +74,7 @@ export function ClassSelector() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <Button size="sm" onClick={handleAddClass}>
+        <Button id="class-selector-new" size="sm" onClick={handleAddClass}>
           + {t('新建班级', 'New Class')}
         </Button>
       </div>
@@ -82,7 +82,7 @@ export function ClassSelector() {
       {isDropdownOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 w-64 bg-white border rounded-lg shadow-lg z-20">
+          <div className="absolute top-full left-0 mt-1 w-64 clay-card z-20">
             {state.classes.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 {t('暂无班级', 'No classes yet')}

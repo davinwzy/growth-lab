@@ -330,7 +330,7 @@ export function SetupWizard() {
               <p>{currentStudents.length} {t('名学生', 'students')}</p>
             </div>
             <p className="text-gray-500">
-              {t('你现在可以开始使用班级管理系统了', 'You can now start using the class management system')}
+              {t('你现在可以开始使用成长实验室了', 'You can now start using Growth Lab')}
             </p>
             <Button onClick={handleComplete} className="mx-auto">
               {t('开始使用', 'Get Started')} 🚀

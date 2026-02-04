@@ -1,9 +1,9 @@
 {
-  "name": "class-management-system",
+  "name": "growth-lab",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://yourusername.github.io/class-management-system",
+  "homepage": "https://davinwzy.github.io/growth-lab/",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
