@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -32,10 +34,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     xl: 'max-w-xl',
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 md:pt-16">
       <div
-        className="absolute inset-0 bg-slate-900/65"
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className={`relative clay-card w-full ${sizeClasses[size]} max-h-[85vh] overflow-auto`}>
@@ -56,4 +58,6 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

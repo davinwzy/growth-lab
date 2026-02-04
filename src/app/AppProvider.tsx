@@ -37,7 +37,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...loaded,
         scoreItems: loaded.scoreItems?.length ? loaded.scoreItems : defaultScoreItems,
         rewards: loaded.rewards?.length ? loaded.rewards : defaultRewards,
-        gamification: loaded.gamification || [],
+        gamification: (loaded.gamification || []).map(g => ({
+          ...g,
+          scoreItemCounts: g.scoreItemCounts || {},
+        })),
         gamificationEvents: loaded.gamificationEvents || [],
         attendanceRecords: loaded.attendanceRecords || [],
         attendanceExemptions: loaded.attendanceExemptions || [],
@@ -449,7 +452,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...saved,
         scoreItems: saved.scoreItems?.length ? saved.scoreItems : defaultScoreItems,
         rewards: saved.rewards?.length ? saved.rewards : defaultRewards,
-        gamification: saved.gamification || [],
+        gamification: (saved.gamification || []).map(g => ({
+          ...g,
+          scoreItemCounts: g.scoreItemCounts || {},
+        })),
         gamificationEvents: saved.gamificationEvents || [],
         customBadges: badges,
         attendanceRecords: saved.attendanceRecords || [],

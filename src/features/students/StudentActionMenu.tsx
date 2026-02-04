@@ -41,7 +41,7 @@ export function StudentActionMenu({ isOpen, onClose, student, group, onViewBadge
       payload: { studentId: student.id, delta: item.value },
     });
 
-    processScore(student.id, student.name, item.value);
+    processScore(student.id, student.name, item.value, item.id);
 
     const record: HistoryRecord = {
       id: generateId(),

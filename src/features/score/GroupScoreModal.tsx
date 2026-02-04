@@ -1,11 +1,8 @@
 import { useState } from 'react';
-import type { Group, ScoreItem, HistoryRecord, Reward, GamificationSnapshot } from '@/shared/types';
+import type { Group, ScoreItem, HistoryRecord } from '@/shared/types';
 import { useApp } from '@/app/AppProvider';
-import { useGamification } from '@/features/gamification/useGamification';
-import { getLevelForXp, LEVEL_DEFINITIONS, cloneGamificationSnapshot } from '@/shared/utils/gamification';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
-import { canGroupRedeemReward, splitGroupRewardCost } from '@/services/groupRewards';
 
 interface GroupScoreModalProps {
   isOpen: boolean;
@@ -13,11 +10,10 @@ interface GroupScoreModalProps {
   group: Group | null;
 }
 
-type ActionTab = 'add' | 'subtract' | 'reward';
+type ActionTab = 'add' | 'subtract';
 
 export function GroupScoreModal({ isOpen, onClose, group }: GroupScoreModalProps) {
   const { state, dispatch, t } = useApp();
-  const { processReward, getGamification } = useGamification();
   const [activeTab, setActiveTab] = useState<ActionTab>('add');
   const [customValue, setCustomValue] = useState('');
   const [customNote, setCustomNote] = useState('');
@@ -29,10 +25,6 @@ export function GroupScoreModal({ isOpen, onClose, group }: GroupScoreModalProps
 
   const addItems = state.scoreItems.filter(item => item.value > 0);
   const subtractItems = state.scoreItems.filter(item => item.value < 0);
-
-  const makeGamSnapshot = (studentId: string): GamificationSnapshot => {
-    return cloneGamificationSnapshot(getGamification(studentId));
-  };
 
   const handleScoreChange = (item: ScoreItem) => {
     // Update group score only (not individual student scores)
@@ -88,79 +80,13 @@ export function GroupScoreModal({ isOpen, onClose, group }: GroupScoreModalProps
     onClose();
   };
 
-  const handleGroupReward = (reward: Reward) => {
-    if (!canGroupRedeemReward(reward, groupStudents)) {
-      alert(t('组员总分不足，无法兑换', 'Insufficient group member points for redemption'));
-      return;
-    }
-
-    // Check level gating: all students must meet minimum level
-    if (reward.minLevel && reward.minLevel > 1) {
-      const allMeetLevel = groupStudents.every(s => {
-        const gam = getGamification(s.id);
-        return getLevelForXp(gam.xp).level >= (reward.minLevel || 1);
-      });
-      if (!allMeetLevel) {
-        const levelDef = LEVEL_DEFINITIONS.find(l => l.level === reward.minLevel);
-        alert(t(
-          `组内所有学生需要达到 ${levelDef?.name || ''} (Lv.${reward.minLevel}) 等级才能兑换`,
-          `All students must be at ${levelDef?.nameEn || ''} level (Lv.${reward.minLevel}) to redeem`
-        ));
-        return;
-      }
-    }
-
-    if (!confirm(t(
-      `确定要用 ${reward.cost} 分为「${group.name}」兑换「${reward.name}」吗？\n每个组员将平均扣除分数。`,
-      `Redeem "${reward.nameEn}" for ${group.name} for ${reward.cost} points?\nPoints will be deducted from each member.`
-    ))) {
-      return;
-    }
-
-    // Deduct points from each student evenly
-    const deductions = splitGroupRewardCost(reward.cost, groupStudents.length);
-
-    const perStudentDeltas: { studentId: string; delta: number; gamificationSnapshot?: GamificationSnapshot }[] = [];
-
-    groupStudents.forEach((student, index) => {
-      const deduction = deductions[index] ?? 0;
-      perStudentDeltas.push({
-        studentId: student.id,
-        delta: -deduction,
-        gamificationSnapshot: makeGamSnapshot(student.id),
-      });
-      dispatch({
-        type: 'UPDATE_STUDENT_SCORE',
-        payload: { studentId: student.id, delta: -deduction },
-      });
-      processReward(student.id, student.name);
-    });
-
-    const record: HistoryRecord = {
-      id: generateId(),
-      classId: group.classId,
-      type: 'reward',
-      targetType: 'group',
-      targetId: group.id,
-      targetName: group.name,
-      itemId: reward.id,
-      itemName: state.language === 'zh-CN' ? reward.name : reward.nameEn,
-      value: -reward.cost,
-      timestamp: Date.now(),
-      perStudentDeltas,
-    };
-    dispatch({ type: 'ADD_HISTORY', payload: record });
-    onClose();
-  };
-
-  const getItemName = (item: ScoreItem | Reward) => {
+  const getItemName = (item: ScoreItem) => {
     return state.language === 'zh-CN' ? item.name : item.nameEn;
   };
 
   const tabs = [
     { key: 'add' as const, label: t('加分', 'Add'), icon: '+' },
     { key: 'subtract' as const, label: t('减分', 'Subtract'), icon: '-' },
-    { key: 'reward' as const, label: t('兑换', 'Redeem'), icon: '🎁' },
   ];
 
   return (

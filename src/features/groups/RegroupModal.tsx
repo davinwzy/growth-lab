@@ -154,15 +154,15 @@ export function RegroupModal({ isOpen, onClose }: RegroupModalProps) {
                         <span
                           className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"
                           style={{
-                            backgroundColor: (currentGroup?.color || '#ccc') + '20',
-                            color: currentGroup?.color || '#666',
+                            backgroundColor: (currentGroup?.color || '#CBD5F5') + '20',
+                            color: currentGroup?.color || '#64748B',
                           }}
                         >
                           <span
                             className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: currentGroup?.color || '#ccc' }}
+                            style={{ backgroundColor: currentGroup?.color || '#94A3B8' }}
                           />
-                          {currentGroup?.name || '?'}
+                          {currentGroup?.name || t('未分组', 'Unassigned')}
                         </span>
                       </td>
                       <td className="px-4 py-2">
@@ -173,6 +173,7 @@ export function RegroupModal({ isOpen, onClose }: RegroupModalProps) {
                             hasChange ? 'border-yellow-400 bg-yellow-50' : ''
                           }`}
                         >
+                          <option value="">{t('未分组', 'Unassigned')}</option>
                           {currentGroups.map(g => (
                             <option key={g.id} value={g.id}>{g.name}</option>
                           ))}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/app/AppProvider';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
@@ -22,6 +22,16 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
   const currentGroups = state.groups
     .filter(g => g.classId === state.currentClassId)
     .sort((a, b) => a.order - b.order);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditingGroup(null);
+      setGroupName('');
+      setGroupColor(groupColors[0]);
+      setShowRegroup(false);
+    }
+  }, [isOpen]);
 
   const handleAddGroup = () => {
     setEditingGroup(null);

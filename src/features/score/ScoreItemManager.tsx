@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/app/AppProvider';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
@@ -16,9 +16,9 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingItem, setEditingItem] = useState<ScoreItem | null>(null);
   const [name, setName] = useState('');
-  const [nameEn, setNameEn] = useState('');
   const [value, setValue] = useState('');
   const [category, setCategory] = useState<ScoreCategory>('custom');
+  const [customCategory, setCustomCategory] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('default');
 
   const categories: { value: ScoreCategory; label: string }[] = [
@@ -38,32 +38,65 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
     return items;
   };
 
-  const groupedItems = categories.map(cat => ({
-    ...cat,
-    items: sortItems(state.scoreItems.filter(item => item.category === cat.value)),
+  const baseGroups = categories
+    .filter(cat => cat.value !== 'custom')
+    .map(cat => ({
+      ...cat,
+      items: sortItems(state.scoreItems.filter(item => item.category === cat.value)),
+    }));
+
+  const customGroups = Object.values(
+    state.scoreItems
+      .filter(item => item.category === 'custom')
+      .reduce<Record<string, { label: string; items: ScoreItem[] }>>((acc, item) => {
+        const label = (item.customCategory || '').trim() || t('自定义', 'Custom');
+        if (!acc[label]) {
+          acc[label] = { label, items: [] };
+        }
+        acc[label].items.push(item);
+        return acc;
+      }, {})
+  ).map(group => ({
+    value: 'custom' as const,
+    label: group.label,
+    items: sortItems(group.items),
   }));
+
+  const groupedItems = [...baseGroups, ...customGroups];
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditingItem(null);
+      setName('');
+      setValue('');
+      setCategory('custom');
+      setCustomCategory('');
+    }
+  }, [isOpen]);
 
   const handleAdd = () => {
     setEditingItem(null);
     setName('');
-    setNameEn('');
     setValue('');
     setCategory('custom');
+    setCustomCategory('');
     setIsEditing(true);
   };
 
   const handleEdit = (item: ScoreItem) => {
     setEditingItem(item);
     setName(item.name);
-    setNameEn(item.nameEn);
     setValue(String(item.value));
     setCategory(item.category);
+    setCustomCategory(item.customCategory || '');
     setIsEditing(true);
   };
 
   const handleSave = () => {
     const numValue = parseInt(value, 10);
-    if (!name.trim() || !nameEn.trim() || isNaN(numValue) || numValue === 0) return;
+    if (!name.trim() || isNaN(numValue) || numValue === 0) return;
+    const trimmedCustom = category === 'custom' ? customCategory.trim() : '';
 
     if (editingItem) {
       dispatch({
@@ -71,18 +104,20 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
         payload: {
           ...editingItem,
           name: name.trim(),
-          nameEn: nameEn.trim(),
+          nameEn: editingItem.nameEn || name.trim(),
           value: numValue,
           category,
+          customCategory: trimmedCustom || undefined,
         },
       });
     } else {
       const newItem: ScoreItem = {
         id: generateId(),
         name: name.trim(),
-        nameEn: nameEn.trim(),
+        nameEn: name.trim(),
         value: numValue,
         category,
+        customCategory: trimmedCustom || undefined,
       };
       dispatch({ type: 'ADD_SCORE_ITEM', payload: newItem });
     }
@@ -104,10 +139,10 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
     >
       {isEditing ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('中文名称', 'Chinese Name')}
+                {t('名称', 'Name')}
               </label>
               <input
                 type="text"
@@ -116,18 +151,6 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
                 placeholder={t('例如：积极发言', 'e.g., 积极发言')}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('英文名称', 'English Name')}
-              </label>
-              <input
-                type="text"
-                value={nameEn}
-                onChange={e => setNameEn(e.target.value)}
-                placeholder="e.g., Active Participation"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -164,13 +187,27 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
               </select>
             </div>
           </div>
+          {category === 'custom' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('自定义分类名称', 'Custom Category Name')}
+              </label>
+              <input
+                type="text"
+                value={customCategory}
+                onChange={e => setCustomCategory(e.target.value)}
+                placeholder={t('例如：课堂表现习惯', 'e.g., Classroom Habits')}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={() => setIsEditing(false)}>
               {t('取消', 'Cancel')}
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!name.trim() || !nameEn.trim() || !value || parseInt(value, 10) === 0}
+              disabled={!name.trim() || !value || parseInt(value, 10) === 0}
             >
               {t('保存', 'Save')}
             </Button>
@@ -198,7 +235,7 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
 
           <div className="space-y-4">
             {groupedItems.map(group => (
-              <div key={group.value}>
+              <div key={`${group.value}-${group.label}`}>
                 <h3 className="font-medium text-gray-900 mb-2">{group.label}</h3>
                 {group.items.length === 0 ? (
                   <div className="text-sm text-gray-500 py-2">
@@ -218,7 +255,6 @@ export function ScoreItemManager({ isOpen, onClose }: ScoreItemManagerProps) {
                         </div>
                         <div className="flex-1">
                           <div className="font-medium">{item.name}</div>
-                          <div className="text-sm text-gray-500">{item.nameEn}</div>
                         </div>
                         <button
                           onClick={() => handleEdit(item)}

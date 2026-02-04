@@ -86,6 +86,9 @@ export function checkBadges(gam: StudentGamification, customBadges: BadgeDefinit
       case 'score_count':
         earned = gam.totalPositiveScores >= c.count;
         break;
+      case 'score_item_count':
+        earned = (gam.scoreItemCounts?.[c.itemId] || 0) >= c.count;
+        break;
       case 'reward_redeemed':
         earned = gam.rewardRedeemedCount >= c.count;
         break;

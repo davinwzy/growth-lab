@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/app/AppProvider';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
@@ -31,23 +31,39 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
   const currentGroups = state.groups
     .filter(g => g.classId === state.currentClassId)
     .sort((a, b) => a.order - b.order);
+  const hasGroups = currentGroups.length > 0;
 
   const currentStudents = state.students.filter(
     s => s.classId === state.currentClassId
   );
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditingStudent(null);
+      setEditName('');
+      setEditGroupId('');
+      setEditAvatar('');
+      setShowAvatarPicker(false);
+      setStudentNames('');
+      setSelectedGroupId('');
+    }
+  }, [isOpen]);
+
   const handleBatchAdd = () => {
-    if (!selectedGroupId || !studentNames.trim() || !state.currentClassId) return;
+    if (!studentNames.trim() || !state.currentClassId) return;
+    if (hasGroups && !selectedGroupId) return;
 
     const names = studentNames
       .split(/[\n,，]/)
       .map(name => name.trim())
       .filter(name => name.length > 0);
 
+    const targetGroupId = hasGroups ? selectedGroupId : '';
     const newStudents: Student[] = names.map(name => ({
       id: generateId(),
       classId: state.currentClassId!,
-      groupId: selectedGroupId,
+      groupId: targetGroupId,
       name,
       score: 0,
       createdAt: Date.now(),
@@ -55,7 +71,9 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
 
     dispatch({ type: 'ADD_STUDENTS', payload: newStudents });
     setStudentNames('');
-    setSelectedGroupId('');
+    if (hasGroups) {
+      setSelectedGroupId('');
+    }
   };
 
   const handleEditStudent = (student: Student) => {
@@ -110,10 +128,6 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
       {!state.currentClassId ? (
         <div className="text-center text-gray-500 py-8">
           {t('请先选择一个班级', 'Please select a class first')}
-        </div>
-      ) : currentGroups.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
-          {t('请先创建组别', 'Please create groups first')}
         </div>
       ) : isEditing ? (
         <div className="space-y-4">
@@ -174,22 +188,28 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('所属组别', 'Group')}
-            </label>
-            <select
-              value={editGroupId}
-              onChange={e => setEditGroupId(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              {currentGroups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {hasGroups ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('所属组别', 'Group')}
+              </label>
+              <select
+                value={editGroupId}
+                onChange={e => setEditGroupId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                {currentGroups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              {t('请先创建组别以进行分组', 'Create groups first to assign students')}
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={() => setIsEditing(false)}>
               {t('取消', 'Cancel')}
@@ -202,10 +222,25 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
       ) : (
         <div className="space-y-6">
           {/* Batch Add Section */}
-          <div className="space-y-3">
-            <h3 className="font-medium text-gray-900">
-              {t('批量添加学生', 'Add Students in Batch')}
-            </h3>
+          <div className="clay-card-soft p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  {t('优先添加学生', 'Add Students First')}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {hasGroups
+                    ? t('先选择组别，再批量输入姓名', 'Pick a group, then paste names in bulk')
+                    : t('暂无组别，学生将暂存为未分组', 'No groups yet. Students will be unassigned.')}
+                </p>
+              </div>
+              <Button
+                onClick={handleBatchAdd}
+                disabled={(hasGroups && !selectedGroupId) || !studentNames.trim()}
+              >
+                {t('添加学生', 'Add Students')}
+              </Button>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t('选择组别', 'Select Group')}
@@ -214,13 +249,20 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
                 value={selectedGroupId}
                 onChange={e => setSelectedGroupId(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={!hasGroups}
               >
-                <option value="">{t('请选择组别', 'Select a group')}</option>
-                {currentGroups.map(group => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
+                {hasGroups ? (
+                  <>
+                    <option value="">{t('请选择组别', 'Select a group')}</option>
+                    {currentGroups.map(group => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </>
+                ) : (
+                  <option value="">{t('暂无组别', 'No groups yet')}</option>
+                )}
               </select>
             </div>
             <div>
@@ -234,16 +276,10 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-24 resize-none"
               />
             </div>
-            <Button
-              onClick={handleBatchAdd}
-              disabled={!selectedGroupId || !studentNames.trim()}
-            >
-              {t('添加学生', 'Add Students')}
-            </Button>
           </div>
 
           {/* Student List Section */}
-          <div className="border-t pt-4">
+          <div className="clay-card-soft p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium text-gray-900">
                 {t('学生列表', 'Student List')} ({currentStudents.length})
@@ -315,6 +351,49 @@ export function StudentManager({ isOpen, onClose }: StudentManagerProps) {
                     </div>
                   );
                 })}
+                {currentStudents.filter(s => !currentGroups.some(g => g.id === s.groupId)).length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium px-2 py-1 rounded bg-slate-100 text-slate-700">
+                      {t('未分组', 'Unassigned')}
+                    </div>
+                    {currentStudents
+                      .filter(s => !currentGroups.some(g => g.id === s.groupId))
+                      .map(student => (
+                        <div
+                          key={student.id}
+                          className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg"
+                        >
+                          {student.avatar ? (
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center bg-gray-100 text-lg shrink-0">
+                              {student.avatar}
+                            </div>
+                          ) : (
+                            <div className="w-2 h-6 rounded shrink-0 bg-slate-300" />
+                          )}
+                          <span className="flex-1">{student.name}</span>
+                          <span className={`font-medium ${student.score >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {student.score}
+                          </span>
+                          <button
+                            onClick={() => handleEditStudent(student)}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(student.id)}
+                            className="p-1 hover:bg-red-100 text-red-600 rounded transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

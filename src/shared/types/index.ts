@@ -36,6 +36,7 @@ export interface ScoreItem {
   nameEn: string;
   value: number;
   category: ScoreCategory;
+  customCategory?: string;
   isDefault?: boolean;
 }
 
@@ -65,6 +66,7 @@ export interface GamificationSnapshot {
   unlockedBadgeIds: string[];
   badgeUnlockedAt: Record<string, number>;
   totalPositiveScores: number;
+  scoreItemCounts: Record<string, number>;
   perfectQuizCount: number;
   helpingOthersCount: number;
   rewardRedeemedCount: number;
@@ -123,6 +125,7 @@ export interface StudentGamification {
   unlockedBadgeIds: string[];
   badgeUnlockedAt: Record<string, number>;
   totalPositiveScores: number;
+  scoreItemCounts: Record<string, number>;
   perfectQuizCount: number;
   helpingOthersCount: number;
   rewardRedeemedCount: number;
@@ -140,6 +143,7 @@ export type BadgeCondition =
   | { type: 'total_xp'; xp: number }
   | { type: 'level_reached'; level: number }
   | { type: 'score_count'; count: number }
+  | { type: 'score_item_count'; itemId: string; count: number }
   | { type: 'reward_redeemed'; count: number }
   | { type: 'perfect_quiz_count'; count: number }
   | { type: 'helping_others_count'; count: number }

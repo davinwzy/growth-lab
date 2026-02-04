@@ -34,7 +34,7 @@ export function useGamification() {
     });
   }, [dispatch]);
 
-  const processScore = useCallback((studentId: string, studentName: string, scoreValue: number) => {
+  const processScore = useCallback((studentId: string, studentName: string, scoreValue: number, scoreItemId?: string) => {
     const gam = getGamification(studentId);
     const now = Date.now();
     const { gam: next, events } = applyPositiveScore(gam, scoreValue, {
@@ -44,7 +44,7 @@ export function useGamification() {
       exemptDates,
       t,
       now,
-    });
+    }, scoreItemId);
     dispatchEvents(events, now);
     dispatch({ type: 'UPDATE_GAMIFICATION', payload: next });
   }, [getGamification, dispatch, dispatchEvents, t, state.customBadges]);

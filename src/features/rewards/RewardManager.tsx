@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/app/AppProvider';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
@@ -17,26 +17,39 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [name, setName] = useState('');
-  const [nameEn, setNameEn] = useState('');
   const [cost, setCost] = useState('');
   const [description, setDescription] = useState('');
-  const [descriptionEn, setDescriptionEn] = useState('');
   const [minLevel, setMinLevel] = useState(1);
   const [sortOrder, setSortOrder] = useState<SortOrder>('default');
 
-  const sortedRewards = [...state.rewards].sort((a, b) => {
-    if (sortOrder === 'high-to-low') return b.cost - a.cost;
-    if (sortOrder === 'low-to-high') return a.cost - b.cost;
-    return 0;
-  });
+  const sortRewards = (rewards: Reward[]) => {
+    if (sortOrder === 'high-to-low') return [...rewards].sort((a, b) => b.cost - a.cost);
+    if (sortOrder === 'low-to-high') return [...rewards].sort((a, b) => a.cost - b.cost);
+    return rewards;
+  };
+
+  const groupedRewards = LEVEL_DEFINITIONS.map(level => ({
+    level,
+    rewards: sortRewards(state.rewards.filter(reward => (reward.minLevel || 1) === level.level)),
+  }));
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditingReward(null);
+      setName('');
+      setCost('');
+      setDescription('');
+      setMinLevel(1);
+    }
+  }, [isOpen]);
+
 
   const handleAdd = () => {
     setEditingReward(null);
     setName('');
-    setNameEn('');
     setCost('');
     setDescription('');
-    setDescriptionEn('');
     setMinLevel(1);
     setIsEditing(true);
   };
@@ -44,17 +57,15 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
   const handleEdit = (reward: Reward) => {
     setEditingReward(reward);
     setName(reward.name);
-    setNameEn(reward.nameEn);
     setCost(String(reward.cost));
     setDescription(reward.description || '');
-    setDescriptionEn(reward.descriptionEn || '');
     setMinLevel(reward.minLevel || 1);
     setIsEditing(true);
   };
 
   const handleSave = () => {
     const numCost = parseInt(cost, 10);
-    if (!name.trim() || !nameEn.trim() || isNaN(numCost) || numCost <= 0) return;
+    if (!name.trim() || isNaN(numCost) || numCost <= 0) return;
 
     if (editingReward) {
       dispatch({
@@ -62,10 +73,10 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
         payload: {
           ...editingReward,
           name: name.trim(),
-          nameEn: nameEn.trim(),
+          nameEn: editingReward.nameEn || name.trim(),
           cost: numCost,
           description: description.trim() || undefined,
-          descriptionEn: descriptionEn.trim() || undefined,
+          descriptionEn: editingReward.descriptionEn || description.trim() || undefined,
           minLevel: minLevel > 1 ? minLevel : undefined,
         },
       });
@@ -73,10 +84,10 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
       const newReward: Reward = {
         id: generateId(),
         name: name.trim(),
-        nameEn: nameEn.trim(),
+        nameEn: name.trim(),
         cost: numCost,
         description: description.trim() || undefined,
-        descriptionEn: descriptionEn.trim() || undefined,
+        descriptionEn: description.trim() || undefined,
         minLevel: minLevel > 1 ? minLevel : undefined,
       };
       dispatch({ type: 'ADD_REWARD', payload: newReward });
@@ -104,32 +115,18 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
     >
       {isEditing ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('中文名称', 'Chinese Name')}
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder={t('例如：免作业券', 'e.g., 免作业券')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('英文名称', 'English Name')}
-              </label>
-              <input
-                type="text"
-                value={nameEn}
-                onChange={e => setNameEn(e.target.value)}
-                placeholder="e.g., Homework Pass"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('名称', 'Name')}
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t('例如：免作业券', 'e.g., 免作业券')}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -163,29 +160,16 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('中文描述（可选）', 'Chinese Description (Optional)')}
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder={t('礼物描述...', 'Description...')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-20 resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('英文描述（可选）', 'English Description (Optional)')}
-              </label>
-              <textarea
-                value={descriptionEn}
-                onChange={e => setDescriptionEn(e.target.value)}
-                placeholder="Description..."
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-20 resize-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('描述（可选）', 'Description (Optional)')}
+            </label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder={t('礼物描述...', 'Description...')}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-20 resize-none"
+            />
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={() => setIsEditing(false)}>
@@ -193,7 +177,7 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!name.trim() || !nameEn.trim() || !cost || parseInt(cost, 10) <= 0}
+              disabled={!name.trim() || !cost || parseInt(cost, 10) <= 0}
             >
               {t('保存', 'Save')}
             </Button>
@@ -224,46 +208,55 @@ export function RewardManager({ isOpen, onClose }: RewardManagerProps) {
               {t('暂无礼物，请添加', 'No rewards yet, please add some')}
             </div>
           ) : (
-            <div className="space-y-2">
-              {sortedRewards.map(reward => (
-                <div
-                  key={reward.id}
-                  className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg"
-                >
-                  <div className="text-2xl">🎁</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{reward.name}</span>
-                      {reward.minLevel && reward.minLevel > 1 && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                          {getLevelLabel(reward.minLevel)} Lv.{reward.minLevel}+
-                        </span>
-                      )}
+            <div className="space-y-4">
+              {groupedRewards.map(group => (
+                <div key={group.level.level}>
+                  <h3 className="font-medium text-gray-900 mb-2">
+                    {group.level.level === 1
+                      ? t('基础礼物（不限等级）', 'Base Rewards (No restriction)')
+                      : `${getLevelLabel(group.level.level)} Lv.${group.level.level}+`}
+                  </h3>
+                  {group.rewards.length === 0 ? (
+                    <div className="text-sm text-gray-500 py-2">
+                      {t('暂无礼物', 'No rewards')}
                     </div>
-                    <div className="text-sm text-gray-500">{reward.nameEn}</div>
-                    {reward.description && (
-                      <div className="text-xs text-gray-400 mt-1">{reward.description}</div>
-                    )}
-                  </div>
-                  <div className="text-amber-600 font-bold text-lg">
-                    {reward.cost} {t('分', 'pts')}
-                  </div>
-                  <button
-                    onClick={() => handleEdit(reward)}
-                    className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(reward.id)}
-                    className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  ) : (
+                    <div className="space-y-2">
+                      {group.rewards.map(reward => (
+                        <div
+                          key={reward.id}
+                          className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+                        >
+                          <div className="text-2xl">🎁</div>
+                          <div className="flex-1">
+                            <div className="font-medium">{reward.name}</div>
+                            {reward.description && (
+                              <div className="text-xs text-gray-400 mt-1">{reward.description}</div>
+                            )}
+                          </div>
+                          <div className="text-amber-600 font-bold text-lg">
+                            {reward.cost} {t('分', 'pts')}
+                          </div>
+                          <button
+                            onClick={() => handleEdit(reward)}
+                            className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(reward.id)}
+                            className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

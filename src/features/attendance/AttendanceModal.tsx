@@ -13,6 +13,7 @@ interface AttendanceModalProps {
 }
 
 type ViewMode = 'today' | 'calendar' | 'history';
+type HistorySort = 'attendance' | 'streak' | 'name';
 
 export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
   const { state, dispatch, t } = useApp();
@@ -25,6 +26,7 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
   });
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [exemptionNote, setExemptionNote] = useState('');
+  const [historySort, setHistorySort] = useState<HistorySort>('attendance');
 
   useEffect(() => {
     setPresentIds(new Set());
@@ -35,12 +37,6 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
     return state.students.filter(s => s.classId === state.currentClassId);
   }, [state.students, state.currentClassId]);
 
-  // Get groups for current class
-  const currentGroups = useMemo(() => {
-    return state.groups
-      .filter(g => g.classId === state.currentClassId)
-      .sort((a, b) => a.order - b.order);
-  }, [state.groups, state.currentClassId]);
 
   // Get today's date string
   const today = useMemo(() => {
@@ -78,13 +74,9 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
     return getPresentStudentIds(dateAttendance);
   }, [dateAttendance]);
 
-  // Students grouped by group
-  const studentsByGroup = useMemo(() => {
-    return currentGroups.map(group => ({
-      group,
-      students: currentStudents.filter(s => s.groupId === group.id),
-    }));
-  }, [currentGroups, currentStudents]);
+  const sortedStudents = useMemo(() => {
+    return [...currentStudents].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+  }, [currentStudents]);
 
   // Calendar data
   const calendarDays = useMemo(() => {
@@ -160,22 +152,6 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
     } else {
       setPresentIds(new Set(notMarked));
     }
-  };
-
-  const handleSelectGroup = (groupId: string) => {
-    const groupStudentIds = currentStudents
-      .filter(s => s.groupId === groupId && !attendedOnDate.has(s.id))
-      .map(s => s.id);
-
-    const allSelected = groupStudentIds.every(id => presentIds.has(id));
-    const newSet = new Set(presentIds);
-
-    if (allSelected) {
-      groupStudentIds.forEach(id => newSet.delete(id));
-    } else {
-      groupStudentIds.forEach(id => newSet.add(id));
-    }
-    setPresentIds(newSet);
   };
 
   const handleSubmit = async () => {
@@ -339,6 +315,33 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
   const unmarkedCount = currentStudents.length - attendedOnDate.size;
   const selectedCount = presentIds.size;
 
+  const attendanceSummary = useMemo(() => {
+    const totalDays = new Set(classAttendance.map(r => r.date)).size;
+    return currentStudents.map(student => {
+      const studentRecords = classAttendance.filter(r => r.studentId === student.id && r.status === 'present');
+      const gam = getGamification(student.id);
+      const rate = totalDays > 0 ? Math.round((studentRecords.length / totalDays) * 100) : 0;
+      return {
+        student,
+        days: studentRecords.length,
+        streak: gam.attendanceStreak || 0,
+        rate,
+      };
+    });
+  }, [classAttendance, currentStudents, getGamification]);
+
+  const sortedAttendanceSummary = useMemo(() => {
+    const list = [...attendanceSummary];
+    if (historySort === 'attendance') {
+      list.sort((a, b) => b.days - a.days);
+    } else if (historySort === 'streak') {
+      list.sort((a, b) => b.streak - a.streak);
+    } else {
+      list.sort((a, b) => a.student.name.localeCompare(b.student.name, 'zh-Hans-CN'));
+    }
+    return list;
+  }, [attendanceSummary, historySort]);
+
   const weekDays = [
     t('日', 'Sun'), t('一', 'Mon'), t('二', 'Tue'), t('三', 'Wed'),
     t('四', 'Thu'), t('五', 'Fri'), t('六', 'Sat')
@@ -353,31 +356,28 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
     >
       <div className="space-y-4">
         {/* View Mode Tabs */}
-        <div className="flex gap-2 border-b pb-2">
-          <button
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={viewMode === 'today' ? 'primary' : 'secondary'}
             onClick={() => { setViewMode('today'); setSelectedDate(today); }}
-            className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-              viewMode === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
           >
             {t('今日签到', "Today's Check-in")}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
             onClick={() => setViewMode('calendar')}
-            className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-              viewMode === 'calendar' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
           >
             {t('日历视图', 'Calendar View')}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === 'history' ? 'primary' : 'secondary'}
             onClick={() => setViewMode('history')}
-            className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-              viewMode === 'history' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'
-            }`}
           >
             {t('出勤记录', 'Attendance History')}
-          </button>
+          </Button>
         </div>
 
         {/* Calendar View */}
@@ -546,18 +546,6 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
               <Button variant="ghost" size="sm" onClick={handleClearWeekends}>
                 {t('清除周末免签', 'Clear Weekends')}
               </Button>
-              {currentGroups.map(group => (
-                <Button
-                  key={group.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleSelectGroup(group.id)}
-                  style={{ borderColor: group.color, color: group.color }}
-                  className="border"
-                >
-                  {group.name}
-                </Button>
-              ))}
             </div>
             <div className="flex gap-2">
               <input
@@ -575,78 +563,68 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
             </div>
 
             {/* Student List */}
-            <div className="max-h-64 overflow-y-auto space-y-4">
-              {studentsByGroup.map(({ group, students }) => (
-                <div key={group.id}>
-                  <div
-                    className="font-medium text-sm mb-2 px-2 py-1 rounded"
-                    style={{ backgroundColor: `${group.color}20`, color: group.color }}
-                  >
-                    {group.name}
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {students.map(student => {
-                      const alreadyMarked = attendedOnDate.has(student.id);
-                      const isSelected = presentIds.has(student.id);
-                      const gam = getGamification(student.id);
+            <div className="max-h-64 overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {sortedStudents.map(student => {
+                  const alreadyMarked = attendedOnDate.has(student.id);
+                  const isSelected = presentIds.has(student.id);
+                  const gam = getGamification(student.id);
 
-                      return (
-                        <div
-                          key={student.id}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                  return (
+                    <div
+                      key={student.id}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        alreadyMarked
+                          ? 'bg-green-50 border-green-300'
+                          : isSelected
+                          ? 'bg-blue-100 border-blue-500'
+                          : 'bg-white border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <button
+                        onClick={() => !alreadyMarked && handleToggle(student.id)}
+                        disabled={alreadyMarked}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
                             alreadyMarked
-                              ? 'bg-green-50 border-green-300'
+                              ? 'bg-green-500 border-green-500'
                               : isSelected
-                              ? 'bg-blue-100 border-blue-500'
-                              : 'bg-white border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <button
-                            onClick={() => !alreadyMarked && handleToggle(student.id)}
-                            disabled={alreadyMarked}
-                            className="w-full text-left"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                alreadyMarked
-                                  ? 'bg-green-500 border-green-500'
-                                  : isSelected
-                                  ? 'bg-blue-500 border-blue-500'
-                                  : 'border-gray-300'
-                              }`}>
-                                {(alreadyMarked || isSelected) && (
-                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
+                              ? 'bg-blue-500 border-blue-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {(alreadyMarked || isSelected) && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{student.name}</div>
+                            {gam.attendanceStreak > 0 && selectedDate === today && (
+                              <div className="text-xs text-orange-500">
+                                🔥 {gam.attendanceStreak} {t('天', 'days')}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{student.name}</div>
-                                {gam.attendanceStreak > 0 && selectedDate === today && (
-                                  <div className="text-xs text-orange-500">
-                                    🔥 {gam.attendanceStreak} {t('天', 'days')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                          {alreadyMarked && (
-                            <div className="flex items-center justify-between mt-1">
-                              <span className="text-xs text-green-600">✓ {t('已签到', 'Checked in')}</span>
-                              <button
-                                onClick={() => handleRevokeAttendance(student.id)}
-                                className="text-xs text-red-500 hover:text-red-700 hover:underline"
-                              >
-                                {t('撤销', 'Revoke')}
-                              </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                      </button>
+                      {alreadyMarked && (
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-green-600">✓ {t('已签到', 'Checked in')}</span>
+                          <button
+                            onClick={() => handleRevokeAttendance(student.id)}
+                            className="text-xs text-red-500 hover:text-red-700 hover:underline"
+                          >
+                            {t('撤销', 'Revoke')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Submit */}
@@ -703,6 +681,19 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
               </div>
             </div>
 
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">{t('排序:', 'Sort:')}</span>
+              <select
+                value={historySort}
+                onChange={e => setHistorySort(e.target.value as HistorySort)}
+                className="px-2 py-1 border rounded text-sm"
+              >
+                <option value="attendance">{t('出勤数高→低', 'Attendance High → Low')}</option>
+                <option value="streak">{t('连胜高→低', 'Streak High → Low')}</option>
+                <option value="name">{t('姓名', 'Name')}</option>
+              </select>
+            </div>
+
             {/* Student Attendance Summary */}
             <div className="max-h-80 overflow-y-auto">
               <table className="w-full text-sm">
@@ -715,29 +706,22 @@ export function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStudents.map(student => {
-                    const studentRecords = classAttendance.filter(r => r.studentId === student.id && r.status === 'present');
-                    const totalDays = new Set(classAttendance.map(r => r.date)).size;
-                    const gam = getGamification(student.id);
-                    const rate = totalDays > 0 ? Math.round((studentRecords.length / totalDays) * 100) : 0;
-
-                    return (
-                      <tr key={student.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2 font-medium">{student.name}</td>
-                        <td className="p-2 text-center">{studentRecords.length}</td>
-                        <td className="p-2 text-center">
-                          {gam.attendanceStreak > 0 && (
-                            <span className="text-orange-500">🔥 {gam.attendanceStreak}</span>
-                          )}
-                        </td>
-                        <td className="p-2 text-center">
-                          <span className={rate >= 80 ? 'text-green-600' : rate >= 60 ? 'text-yellow-600' : 'text-red-600'}>
-                            {rate}%
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {sortedAttendanceSummary.map(entry => (
+                    <tr key={entry.student.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2 font-medium">{entry.student.name}</td>
+                      <td className="p-2 text-center">{entry.days}</td>
+                      <td className="p-2 text-center">
+                        {entry.streak > 0 && (
+                          <span className="text-orange-500">🔥 {entry.streak}</span>
+                        )}
+                      </td>
+                      <td className="p-2 text-center">
+                        <span className={entry.rate >= 80 ? 'text-green-600' : entry.rate >= 60 ? 'text-yellow-600' : 'text-red-600'}>
+                          {entry.rate}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

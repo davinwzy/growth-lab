@@ -131,16 +131,10 @@ function AppContent() {
     setShowBadgeCollection(true);
   };
 
-  const handleScrollToProgress = () => {
-    document.getElementById('lab-progress-demo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
   const handleCreateClass = () => {
     const trigger = document.getElementById('class-selector-new');
     if (trigger) {
       trigger.click();
-    } else {
-      handleScrollToProgress();
     }
   };
 
@@ -216,7 +210,7 @@ function AppContent() {
       <main className="max-w-7xl mx-auto px-4 py-6 pb-24">
         {!state.currentClassId ? (
           <div className="space-y-8">
-            <section className="clay-card lab-hero p-6 md:p-10 grid gap-6 md:grid-cols-[1.1fr,0.9fr] lab-animate">
+            <section className="clay-card lab-hero p-6 md:p-10 grid gap-6 md:grid-cols-1 lab-animate">
               <div className="space-y-4">
                 <span className="lab-badge">{t('成长实验室', 'GROWTH LAB')}</span>
                 <h2 className="text-3xl md:text-4xl font-display text-slate-900">
@@ -239,29 +233,6 @@ function AppContent() {
                   <span className="clay-pill px-3 py-1">{t('奖励解锁', 'Rewards')}</span>
                 </div>
               </div>
-              <div id="lab-progress-demo" className="clay-card-soft p-5 space-y-4 lab-animate lab-animate-delay-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-slate-800">
-                    {t('成长轨迹一目了然', 'Progress at a glance')}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {t('今日进度 70%', 'Today 70%')}
-                  </div>
-                </div>
-                <div className="lab-progress-track">
-                  <div className="lab-progress-fill" style={{ width: '70%' }} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="lab-kpi">
-                    <div className="text-xs text-slate-500">{t('本周成长', 'Weekly Growth')}</div>
-                    <div className="text-xl font-bold text-sky-600">+120</div>
-                  </div>
-                  <div className="lab-kpi">
-                    <div className="text-xs text-slate-500">{t('连续挑战', 'Streaks')}</div>
-                    <div className="text-xl font-bold text-emerald-600">4</div>
-                  </div>
-                </div>
-              </div>
             </section>
 
           </div>
@@ -279,36 +250,13 @@ function AppContent() {
                 {t('创建组别', 'Create Groups')}
               </Button>
             </section>
-            <section className="clay-card-soft p-5 space-y-4" id="lab-progress-demo">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-800">
-                  {t('成长轨迹一目了然', 'Progress at a glance')}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {t('今日进度 70%', 'Today 70%')}
-                </div>
-              </div>
-              <div className="lab-progress-track">
-                <div className="lab-progress-fill" style={{ width: '70%' }} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="lab-kpi">
-                  <div className="text-xs text-slate-500">{t('本周成长', 'Weekly Growth')}</div>
-                  <div className="text-xl font-bold text-sky-600">+120</div>
-                </div>
-                <div className="lab-kpi">
-                  <div className="text-xs text-slate-500">{t('连续挑战', 'Streaks')}</div>
-                  <div className="text-xl font-bold text-emerald-600">4</div>
-                </div>
-              </div>
-            </section>
           </div>
         ) : (
           <>
             {/* Batch Operation Bar */}
-            {selectionMode && (
-              <div className="clay-card p-3 mb-4 flex items-center justify-between bg-white/80">
-                <div className="flex items-center gap-4">
+            {selectionMode ? (
+              <div className="clay-card p-3 mb-4 flex flex-wrap items-center gap-3 justify-between bg-white/80">
+                <div className="flex flex-wrap items-center gap-2">
                   <span>
                     {t(`已选择 ${selectedStudentIds.size} 名学生`, `${selectedStudentIds.size} students selected`)}
                   </span>
@@ -322,8 +270,29 @@ function AppContent() {
                       ? t('取消全选', 'Deselect All')
                       : t('全选', 'Select All')}
                   </Button>
+                  {currentGroups.map(group => (
+                    <Button
+                      key={group.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSelectGroup(group.id)}
+                      style={{ borderColor: group.color, color: group.color }}
+                      className="border"
+                    >
+                      {group.name}
+                    </Button>
+                  ))}
                 </div>
                 <div className="flex items-center gap-2">
+                  {selectedStudentIds.size > 0 && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowBatchModal(true)}
+                    >
+                      {t('加减分', 'Score')}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -333,6 +302,16 @@ function AppContent() {
                     {t('取消', 'Cancel')}
                   </Button>
                 </div>
+              </div>
+            ) : (
+              <div className="flex justify-end mb-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSelectionMode(true)}
+                >
+                  {t('批量操作', 'Batch Mode')}
+                </Button>
               </div>
             )}
 
@@ -353,44 +332,6 @@ function AppContent() {
               ))}
             </div>
 
-            {/* Bottom Action Bar */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 clay-pill px-4 py-2 backdrop-blur">
-              {!selectionMode ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setSelectionMode(true)}
-                  >
-                    {t('批量操作', 'Batch Mode')}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {currentGroups.map(group => (
-                    <Button
-                      key={group.id}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSelectGroup(group.id)}
-                      style={{ borderColor: group.color, color: group.color }}
-                      className="border"
-                    >
-                      {group.name}
-                    </Button>
-                  ))}
-                  {selectedStudentIds.size > 0 && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setShowBatchModal(true)}
-                    >
-                      {t('加减分', 'Score')}
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
           </>
         )}
       </main>

@@ -62,11 +62,19 @@ function applyBadgeRewards(
 export function applyPositiveScore(
   gam: StudentGamification,
   scoreValue: number,
-  ctx: ApplyContext
+  ctx: ApplyContext,
+  scoreItemId?: string
 ): { gam: StudentGamification; events: GamificationEventDraft[] } {
   if (scoreValue <= 0) {
     return { gam, events: [] };
   }
+
+  const nextScoreItemCounts = scoreItemId
+    ? {
+        ...(gam.scoreItemCounts || {}),
+        [scoreItemId]: ((gam.scoreItemCounts || {})[scoreItemId] || 0) + 1,
+      }
+    : (gam.scoreItemCounts || {});
 
   const events: GamificationEventDraft[] = [];
   const newXp = gam.xp + scoreValue;
@@ -78,6 +86,7 @@ export function applyPositiveScore(
     xp: newXp,
     level: newLevel.level,
     totalPositiveScores: gam.totalPositiveScores + 1,
+    scoreItemCounts: nextScoreItemCounts,
   };
 
   const todayStr = formatDateKey(new Date());

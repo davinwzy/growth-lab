@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/app/AppProvider';
 import { Modal, Button } from '@/shared/components';
 import { generateId } from '@/shared/utils/storage';
-import { DEFAULT_BADGE_DEFINITIONS } from '@/shared/utils/badges';
 import type { BadgeDefinition, BadgeCondition } from '@/shared/types';
 
 interface BadgeManagerProps {
@@ -12,12 +11,13 @@ interface BadgeManagerProps {
 
 type ConditionType = BadgeCondition['type'];
 
-const CONDITION_TYPES: { value: ConditionType; label: string; labelEn: string; hasValue: boolean; valueLabel: string; valueLabelEn: string }[] = [
+const CONDITION_TYPES: { value: ConditionType; label: string; labelEn: string; hasValue: boolean; valueLabel: string; valueLabelEn: string; needsItem?: boolean }[] = [
   { value: 'first_score', label: '首次得分', labelEn: 'First Score', hasValue: false, valueLabel: '', valueLabelEn: '' },
   { value: 'total_xp', label: '累计XP达到', labelEn: 'Total XP Reached', hasValue: true, valueLabel: 'XP数量', valueLabelEn: 'XP Amount' },
   { value: 'level_reached', label: '达到等级', labelEn: 'Level Reached', hasValue: true, valueLabel: '等级(1-6)', valueLabelEn: 'Level (1-6)' },
   { value: 'streak_days', label: '连续天数', labelEn: 'Streak Days', hasValue: true, valueLabel: '天数', valueLabelEn: 'Days' },
   { value: 'score_count', label: '累计加分次数', labelEn: 'Total Score Count', hasValue: true, valueLabel: '次数', valueLabelEn: 'Count' },
+  { value: 'score_item_count', label: '指定加分项次数', labelEn: 'Specific Score Item Count', hasValue: true, valueLabel: '次数', valueLabelEn: 'Count', needsItem: true },
   { value: 'reward_redeemed', label: '兑换礼物次数', labelEn: 'Rewards Redeemed', hasValue: true, valueLabel: '次数', valueLabelEn: 'Count' },
   { value: 'perfect_quiz_count', label: '满分测验次数', labelEn: 'Perfect Quiz Count', hasValue: true, valueLabel: '次数', valueLabelEn: 'Count' },
   { value: 'helping_others_count', label: '助人为乐次数', labelEn: 'Helping Others Count', hasValue: true, valueLabel: '次数', valueLabelEn: 'Count' },
@@ -41,29 +41,44 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingBadge, setEditingBadge] = useState<BadgeDefinition | null>(null);
   const [name, setName] = useState('');
-  const [nameEn, setNameEn] = useState('');
   const [emoji, setEmoji] = useState('🏅');
   const [description, setDescription] = useState('');
-  const [descriptionEn, setDescriptionEn] = useState('');
   const [category, setCategory] = useState<string>('custom');
   const [conditionType, setConditionType] = useState<ConditionType>('total_xp');
   const [conditionValue, setConditionValue] = useState('');
+  const [conditionItemId, setConditionItemId] = useState('');
   const [bonusPoints, setBonusPoints] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const positiveScoreItems = state.scoreItems.filter(item => item.value > 0);
 
   // All badges are now editable (stored in customBadges)
   const allBadges = state.customBadges || [];
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditing(false);
+      setEditingBadge(null);
+      setName('');
+      setEmoji('🏅');
+      setDescription('');
+      setCategory('custom');
+      setConditionType('total_xp');
+      setConditionValue('');
+      setConditionItemId(positiveScoreItems[0]?.id || '');
+      setBonusPoints('');
+      setShowEmojiPicker(false);
+    }
+  }, [isOpen, positiveScoreItems]);
+
   const handleAdd = () => {
     setEditingBadge(null);
     setName('');
-    setNameEn('');
     setEmoji('🏅');
     setDescription('');
-    setDescriptionEn('');
     setCategory('custom');
     setConditionType('total_xp');
     setConditionValue('');
+    setConditionItemId(positiveScoreItems[0]?.id || '');
     setBonusPoints('10');
     setIsEditing(true);
   };
@@ -71,10 +86,8 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
   const handleEdit = (badge: BadgeDefinition) => {
     setEditingBadge(badge);
     setName(badge.name);
-    setNameEn(badge.nameEn);
     setEmoji(badge.emoji);
     setDescription(badge.description);
-    setDescriptionEn(badge.descriptionEn);
     setCategory(badge.category);
     setConditionType(badge.condition.type);
 
@@ -85,13 +98,18 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
     else if ('days' in c) setConditionValue(String(c.days));
     else if ('count' in c) setConditionValue(String(c.count));
     else setConditionValue('');
+    if ('itemId' in c) {
+      setConditionItemId(c.itemId);
+    } else {
+      setConditionItemId(positiveScoreItems[0]?.id || '');
+    }
 
     setBonusPoints(String(badge.bonusPoints || 0));
     setIsEditing(true);
   };
 
   const handleSave = () => {
-    if (!name.trim() || !nameEn.trim()) return;
+    if (!name.trim()) return;
 
     const condTypeInfo = CONDITION_TYPES.find(ct => ct.value === conditionType);
     if (condTypeInfo?.hasValue && (!conditionValue || parseInt(conditionValue, 10) <= 0)) return;
@@ -115,6 +133,9 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
       case 'score_count':
         condition = { type: 'score_count', count: numValue };
         break;
+      case 'score_item_count':
+        condition = { type: 'score_item_count', itemId: conditionItemId, count: numValue };
+        break;
       case 'reward_redeemed':
         condition = { type: 'reward_redeemed', count: numValue };
         break;
@@ -134,11 +155,11 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
     const badgeData: BadgeDefinition = {
       id: editingBadge?.id || generateId(),
       name: name.trim(),
-      nameEn: nameEn.trim(),
+      nameEn: editingBadge?.nameEn || name.trim(),
       emoji,
       category: category as BadgeDefinition['category'],
       description: description.trim(),
-      descriptionEn: descriptionEn.trim(),
+      descriptionEn: editingBadge?.descriptionEn || description.trim(),
       condition,
       bonusPoints: parseInt(bonusPoints, 10) || 0,
     };
@@ -157,22 +178,6 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
     }
   };
 
-  const handleResetToDefaults = () => {
-    if (confirm(t(
-      '确定要恢复默认成就吗？当前的成就设置将被替换。',
-      'Are you sure you want to restore default achievements? Current settings will be replaced.'
-    ))) {
-      // Delete all current badges
-      allBadges.forEach(badge => {
-        dispatch({ type: 'DELETE_CUSTOM_BADGE', payload: badge.id });
-      });
-      // Add default badges
-      DEFAULT_BADGE_DEFINITIONS.forEach(badge => {
-        dispatch({ type: 'ADD_CUSTOM_BADGE', payload: badge });
-      });
-    }
-  };
-
   const getConditionDisplay = (badge: BadgeDefinition) => {
     const c = badge.condition;
     const condType = CONDITION_TYPES.find(ct => ct.value === c.type);
@@ -183,6 +188,12 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
     else if ('level' in c) value = `Lv.${c.level}`;
     else if ('days' in c) value = `${c.days} ${t('天', 'days')}`;
     else if ('count' in c) value = `${c.count} ${t('次', 'times')}`;
+
+    if ('itemId' in c) {
+      const item = state.scoreItems.find(i => i.id === c.itemId);
+      const itemLabel = item?.name || t('已删除项目', 'Deleted item');
+      return `${t(condType.label, condType.labelEn)}: ${itemLabel} × ${c.count}`;
+    }
 
     return value ? `${t(condType.label, condType.labelEn)}: ${value}` : t(condType.label, condType.labelEn);
   };
@@ -204,32 +215,18 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
     >
       {isEditing ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('中文名称', 'Chinese Name')}
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder={t('例如：阅读达人', 'e.g., 阅读达人')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('英文名称', 'English Name')}
-              </label>
-              <input
-                type="text"
-                value={nameEn}
-                onChange={e => setNameEn(e.target.value)}
-                placeholder="e.g., Reading Master"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('名称', 'Name')}
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={t('例如：阅读达人', 'e.g., 阅读达人')}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -326,30 +323,39 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
               </div>
             )}
           </div>
+          {selectedCondType?.needsItem && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('关联加分项', 'Related Score Item')}
+              </label>
+              <select
+                value={conditionItemId}
+                onChange={e => setConditionItemId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                {positiveScoreItems.length === 0 ? (
+                  <option value="">{t('暂无加分项', 'No score items')}</option>
+                ) : (
+                  positiveScoreItems.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('中文描述', 'Chinese Description')}
-              </label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder={t('成就描述...', 'Description...')}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-16 resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('英文描述', 'English Description')}
-              </label>
-              <textarea
-                value={descriptionEn}
-                onChange={e => setDescriptionEn(e.target.value)}
-                placeholder="Description..."
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-16 resize-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('描述', 'Description')}
+            </label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder={t('成就描述...', 'Description...')}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 h-16 resize-none"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
@@ -358,7 +364,9 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!name.trim() || !nameEn.trim() || (selectedCondType?.hasValue && (!conditionValue || parseInt(conditionValue, 10) <= 0))}
+              disabled={!name.trim()
+                || (selectedCondType?.hasValue && (!conditionValue || parseInt(conditionValue, 10) <= 0))
+                || (selectedCondType?.needsItem && !conditionItemId)}
             >
               {t('保存', 'Save')}
             </Button>
@@ -366,33 +374,31 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-2">
             <Button onClick={handleAdd}>
               + {t('添加成就', 'Add Achievement')}
             </Button>
-            <Button variant="secondary" onClick={handleResetToDefaults}>
-              {t('恢复默认成就', 'Reset to Defaults')}
-            </Button>
+            <div className="text-xs text-gray-500">
+              {t('按类别查看与管理', 'Browse by category')}
+            </div>
           </div>
 
           {/* Badges by Category */}
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {badgesByCategory.map(cat => (
               <div key={cat.value}>
-                <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2 sticky top-0 bg-white py-1">
-                  {t(cat.label, cat.labelEn)}
-                  <span className="text-xs text-gray-400">({cat.badges.length})</span>
+                <h3 className="font-medium text-gray-900 mb-2">
+                  {t(cat.label, cat.labelEn)} <span className="text-xs text-gray-400">({cat.badges.length})</span>
                 </h3>
                 <div className="space-y-2">
                   {cat.badges.map(badge => (
                     <div
                       key={badge.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                     >
                       <div className="text-2xl">{badge.emoji}</div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{badge.name}</div>
-                        <div className="text-sm text-gray-500 truncate">{badge.nameEn}</div>
                         <div className="text-xs text-gray-400 mt-1">
                           {getConditionDisplay(badge)}
                           {badge.bonusPoints ? ` | +${badge.bonusPoints} ${t('分', 'pts')}` : ''}
@@ -400,10 +406,10 @@ export function BadgeManager({ isOpen, onClose }: BadgeManagerProps) {
                       </div>
                       <button
                         onClick={() => handleEdit(badge)}
-                        className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                         title={t('编辑', 'Edit')}
                       >
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>

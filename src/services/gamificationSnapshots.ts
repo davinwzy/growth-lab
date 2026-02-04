@@ -17,6 +17,7 @@ export function snapshotByStudentId(
       unlockedBadgeIds: [],
       badgeUnlockedAt: {},
       totalPositiveScores: 0,
+      scoreItemCounts: {},
       perfectQuizCount: 0,
       helpingOthersCount: 0,
       rewardRedeemedCount: 0,

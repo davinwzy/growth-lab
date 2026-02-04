@@ -14,6 +14,7 @@ export function SetupWizard() {
 
   // Step 1: Groups
   const [groupCount, setGroupCount] = useState(4);
+  const [groupCountInput, setGroupCountInput] = useState('4');
   const [groupNames, setGroupNames] = useState<string[]>([]);
 
   // Step 2: Students
@@ -25,6 +26,7 @@ export function SetupWizard() {
 
   useEffect(() => {
     if (groupCount < 1) return;
+    setGroupCountInput(String(groupCount));
     setGroupNames(prev => {
       const updated = [...prev];
       for (let i = 0; i < groupCount; i++) {
@@ -148,17 +150,27 @@ export function SetupWizard() {
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600">{t('组别数量', 'Group Count')}</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={groupCount}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={groupCountInput}
                   onChange={e => {
-                    const value = parseInt(e.target.value, 10);
-                    if (isNaN(value) || value < 1) return;
-                    setGroupCount(value);
+                    const digits = e.target.value.replace(/[^\d]/g, '');
+                    setGroupCountInput(digits);
+                    if (!digits) return;
+                    const value = parseInt(digits, 10);
+                    if (isNaN(value)) return;
+                    const clamped = Math.min(50, Math.max(1, value));
+                    setGroupCount(clamped);
                   }}
-                  className="w-20 px-2 py-1 border rounded text-center text-sm focus:ring-2 focus:ring-blue-500"
+                  onBlur={() => {
+                    if (!groupCountInput) {
+                      setGroupCountInput(String(groupCount));
+                    }
+                  }}
+                  className="w-24 px-3 py-1.5 border rounded-lg text-center text-sm focus:ring-2 focus:ring-blue-500"
                 />
+                <span className="text-xs text-gray-500">{t('最多 50 组', 'Up to 50 groups')}</span>
               </div>
             </div>
 
