@@ -192,52 +192,6 @@ export function GroupScoreModal({ isOpen, onClose, group }: GroupScoreModalProps
           </div>
         )}
 
-        {/* Reward Tab Content */}
-        {activeTab === 'reward' && (
-          <div className="space-y-2">
-            <div className="text-sm text-gray-500">
-              {t('组别兑换将从组员个人分数中平均扣除', 'Points will be deducted evenly from group members\' individual scores')}
-            </div>
-            {state.rewards.map(reward => {
-              const totalStudentScore = groupStudents.reduce((sum, s) => sum + s.score, 0);
-              const canAfford = totalStudentScore >= reward.cost;
-              const levelDef = reward.minLevel ? LEVEL_DEFINITIONS.find(l => l.level === reward.minLevel) : null;
-
-              return (
-                <button
-                  key={reward.id}
-                  onClick={() => handleGroupReward(reward)}
-                  disabled={!canAfford}
-                  className={`w-full p-3 rounded-lg text-left transition-colors flex items-center gap-3 ${
-                    canAfford
-                      ? 'bg-amber-50 hover:bg-amber-100 border border-amber-200'
-                      : 'bg-gray-50 border border-gray-200 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="text-2xl">🎁</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{getItemName(reward)}</span>
-                      {reward.minLevel && reward.minLevel > 1 && (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                          {levelDef?.emoji} Lv.{reward.minLevel}+
-                        </span>
-                      )}
-                    </div>
-                    {(reward.description || reward.descriptionEn) && (
-                      <div className="text-sm text-gray-500">
-                        {state.language === 'zh-CN' ? reward.description : reward.descriptionEn}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-amber-600 font-bold">
-                    {reward.cost} {t('分', 'pts')}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </Modal>
   );
