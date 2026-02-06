@@ -27,6 +27,7 @@ import type { Student, Group, StudentGamification } from '@/shared/types';
 
 function UserMenu() {
   const { user, signOut } = useAuth();
+  const { t } = useApp();
   const [open, setOpen] = useState(false);
 
   if (!user) return null;
@@ -53,7 +54,7 @@ function UserMenu() {
               onClick={() => { setOpen(false); signOut(); }}
               className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
-              退出登录 / Sign Out
+              {t('退出登录', 'Sign Out')}
             </button>
           </div>
         </>

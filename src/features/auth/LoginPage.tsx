@@ -1,10 +1,22 @@
 import { useAuth } from './AuthProvider';
+import { useLanguage } from '@/shared/hooks/useLanguage';
 
 export function LoginPage() {
   const { signInWithGoogle, loading } = useAuth();
+  const { language, toggleLanguage, t } = useLanguage();
 
   return (
     <div className="min-h-screen lab-surface flex items-center justify-center p-4">
+      {/* Language Switch - Top Right */}
+      <div className="fixed top-4 right-4">
+        <button
+          onClick={toggleLanguage}
+          className="px-3 py-1.5 text-xs rounded-xl bg-white/80 border border-slate-200 shadow-sm hover:bg-white transition-colors font-medium text-slate-700"
+        >
+          {language === 'zh-CN' ? 'EN' : '中文'}
+        </button>
+      </div>
+
       <div className="clay-card p-8 md:p-12 max-w-md w-full space-y-8 lab-animate">
         {/* Logo */}
         <div className="text-center space-y-3">
@@ -12,10 +24,10 @@ export function LoginPage() {
             🧪
           </div>
           <h1 className="text-3xl font-display text-slate-900">
-            Growth Lab
+            {t('成长实验室', 'Growth Lab')}
           </h1>
           <p className="text-sm text-slate-600">
-            Growing together, one step at a time.
+            {t('一起成长，一步一脚印。', 'Growing together, one step at a time.')}
           </p>
         </div>
 
@@ -23,15 +35,15 @@ export function LoginPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-sm text-slate-700">
             <span className="text-lg">☁️</span>
-            <span>数据云端同步，任何设备都能用</span>
+            <span>{t('数据云端同步，任何设备都能用', 'Cloud sync - access from any device')}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-700">
             <span className="text-lg">🎮</span>
-            <span>游戏化课堂管理，激励学生成长</span>
+            <span>{t('游戏化课堂管理，激励学生成长', 'Gamified classroom management')}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-700">
             <span className="text-lg">📊</span>
-            <span>出勤、加分、成就，一站式管理</span>
+            <span>{t('出勤、加分、成就，一站式管理', 'Attendance, scoring, badges - all in one')}</span>
           </div>
         </div>
 
@@ -47,12 +59,12 @@ export function LoginPage() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          使用 Google 登录
+          {t('使用 Google 登录', 'Sign in with Google')}
         </button>
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400">
-          登录即表示你同意使用此系统。数据安全存储在云端。
+          {t('登录即表示你同意使用此系统。数据安全存储在云端。', 'By signing in, you agree to use this system. Data is securely stored in the cloud.')}
         </p>
       </div>
     </div>

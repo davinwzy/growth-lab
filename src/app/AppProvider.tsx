@@ -6,6 +6,9 @@ import { createDefaultGamification } from '@/shared/utils/gamification';
 import { computeAttendanceStreaks } from '@/services/attendanceStreaks';
 import { computeScoreStreaks } from '@/services/scoreStreaks';
 import { DEFAULT_BADGE_DEFINITIONS } from '@/shared/utils/badges';
+import { getInitialLanguage } from '@/shared/hooks/useLanguage';
+
+const LANGUAGE_KEY = 'growth-lab-language';
 
 export const initialState: AppState = {
   classes: [],
@@ -15,7 +18,7 @@ export const initialState: AppState = {
   scoreItems: defaultScoreItems,
   rewards: defaultRewards,
   history: [],
-  language: 'zh-CN',
+  language: getInitialLanguage(),
   gamification: [],
   gamificationEvents: [],
   customBadges: [...DEFAULT_BADGE_DEFINITIONS], // Initialize with default badges
@@ -28,6 +31,8 @@ export const initialState: AppState = {
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_LANGUAGE':
+      // Sync to localStorage so LoginPage can read it
+      localStorage.setItem(LANGUAGE_KEY, action.payload);
       return { ...state, language: action.payload };
 
     case 'LOAD_STATE': {
