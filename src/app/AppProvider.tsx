@@ -1,6 +1,6 @@
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { AppState, AppAction } from '@/shared/types';
-import { loadFromStorage, saveToStorage } from '@/shared/utils/storage';
+import { loadFromStorage, saveToStorage, loadFromCloud, saveToCloudDebounced, hasLocalData, clearLocalStorage } from '@/shared/utils/storage';
 import { defaultScoreItems, defaultRewards } from '@/shared/utils/defaults';
 import { createDefaultGamification } from '@/shared/utils/gamification';
 import { computeAttendanceStreaks } from '@/services/attendanceStreaks';
@@ -437,40 +437,101 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-export function AppProvider({ children }: { children: ReactNode }) {
+function migrateState(saved: Partial<AppState>): AppState {
+  let badges = saved.customBadges;
+  if (!badges || badges.length === 0) {
+    badges = [...DEFAULT_BADGE_DEFINITIONS];
+  }
+  return {
+    ...initialState,
+    ...saved,
+    scoreItems: saved.scoreItems?.length ? saved.scoreItems : defaultScoreItems,
+    rewards: saved.rewards?.length ? saved.rewards : defaultRewards,
+    gamification: (saved.gamification || []).map(g => ({
+      ...g,
+      scoreItemCounts: g.scoreItemCounts || {},
+    })),
+    gamificationEvents: saved.gamificationEvents || [],
+    customBadges: badges,
+    attendanceRecords: saved.attendanceRecords || [],
+    attendanceExemptions: saved.attendanceExemptions || [],
+    onboardingClassId: saved.onboardingClassId || null,
+    onboardingStep: saved.onboardingStep || null,
+    groups: (saved.groups || []).map((g: any) => ({ ...g, score: g.score ?? 0 })),
+  };
+}
+
+interface AppProviderProps {
+  children: ReactNode;
+  userId?: string | null;
+}
+
+export function AppProvider({ children, userId }: AppProviderProps) {
+  const [cloudLoaded, setCloudLoaded] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
+
   const [state, dispatch] = useReducer(appReducer, undefined, () => {
+    // Always start with localStorage cache for instant loading
     const saved = loadFromStorage();
     if (saved) {
-      // Migrate: if customBadges is empty or doesn't exist, initialize with default badges
-      let badges = saved.customBadges;
-      if (!badges || badges.length === 0) {
-        badges = [...DEFAULT_BADGE_DEFINITIONS];
-      }
-
-      return {
-        ...initialState,
-        ...saved,
-        scoreItems: saved.scoreItems?.length ? saved.scoreItems : defaultScoreItems,
-        rewards: saved.rewards?.length ? saved.rewards : defaultRewards,
-        gamification: (saved.gamification || []).map(g => ({
-          ...g,
-          scoreItemCounts: g.scoreItemCounts || {},
-        })),
-        gamificationEvents: saved.gamificationEvents || [],
-        customBadges: badges,
-        attendanceRecords: saved.attendanceRecords || [],
-        attendanceExemptions: saved.attendanceExemptions || [],
-        onboardingClassId: saved.onboardingClassId || null,
-        onboardingStep: saved.onboardingStep || null,
-        groups: (saved.groups || []).map((g: any) => ({ ...g, score: g.score ?? 0 })),
-      };
+      return migrateState(saved);
     }
     return initialState;
   });
 
+  // Load from cloud when userId is available
   useEffect(() => {
+    if (!userId) {
+      setCloudLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCloud() {
+      const cloudData = await loadFromCloud(userId!);
+
+      if (cancelled) return;
+
+      if (cloudData) {
+        // Cloud data exists — use it
+        dispatch({ type: 'LOAD_STATE', payload: cloudData });
+        setCloudLoaded(true);
+      } else if (hasLocalData()) {
+        // No cloud data, but has local data — offer migration
+        setShowMigration(true);
+        setCloudLoaded(true);
+      } else {
+        // No data anywhere — fresh start
+        setCloudLoaded(true);
+      }
+    }
+
+    loadCloud();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Save to localStorage + cloud on state change
+  useEffect(() => {
+    if (!cloudLoaded) return; // Don't save until cloud load completes
     saveToStorage(state);
-  }, [state]);
+    if (userId) {
+      saveToCloudDebounced(userId, state);
+    }
+  }, [state, userId, cloudLoaded]);
+
+  const handleMigrateLocal = useCallback(() => {
+    // Local data is already in state (loaded via lazy initializer)
+    // Just close migration dialog — next state save will push to cloud
+    setShowMigration(false);
+  }, []);
+
+  const handleSkipMigration = useCallback(() => {
+    // Start fresh — clear local and reset state
+    clearLocalStorage();
+    dispatch({ type: 'LOAD_STATE', payload: initialState });
+    setShowMigration(false);
+  }, []);
 
   const t = (zh: string, en: string): string => {
     return state.language === 'zh-CN' ? zh : en;
@@ -478,6 +539,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{ state, dispatch, t }}>
+      {showMigration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="clay-card p-6 md:p-8 max-w-md w-full space-y-4 lab-animate">
+            <div className="text-center space-y-2">
+              <div className="text-4xl">📦</div>
+              <h2 className="text-xl font-display text-slate-900">
+                {t('发现本地数据', 'Local Data Found')}
+              </h2>
+              <p className="text-sm text-slate-600">
+                {t(
+                  '检测到此浏览器中有已保存的数据。是否要将其同步到云端？',
+                  'We found saved data in this browser. Would you like to sync it to the cloud?'
+                )}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleMigrateLocal}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-500 text-white font-semibold shadow-md hover:bg-indigo-600 transition-colors"
+              >
+                {t('同步到云端', 'Sync to Cloud')}
+              </button>
+              <button
+                onClick={handleSkipMigration}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:bg-slate-50 transition-colors"
+              >
+                {t('重新开始', 'Start Fresh')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {children}
     </AppContext.Provider>
   );

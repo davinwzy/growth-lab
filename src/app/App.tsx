@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { AppProvider, useApp } from './AppProvider';
+import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { LoginPage } from '@/features/auth/LoginPage';
 import { Button, LanguageSwitch } from '@/shared/components';
 import { ClassSelector } from '@/features/classes/ClassSelector';
 import { GroupCard } from '@/features/groups/GroupCard';
@@ -22,6 +24,43 @@ import { GroupSettlementModal } from '@/features/groups/GroupSettlementModal';
 import { AttendanceModal } from '@/features/attendance/AttendanceModal';
 import { useGamification } from '@/features/gamification/useGamification';
 import type { Student, Group, StudentGamification } from '@/shared/types';
+
+function UserMenu() {
+  const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  if (!user) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm flex items-center justify-center hover:bg-indigo-200 transition-colors"
+        title={user.email || ''}
+      >
+        {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 z-50 clay-card p-3 min-w-[200px] space-y-2">
+            <div className="text-sm text-slate-700 font-medium truncate px-1">
+              {user.user_metadata?.full_name || user.email}
+            </div>
+            <div className="text-xs text-slate-500 truncate px-1">{user.email}</div>
+            <hr className="border-slate-200" />
+            <button
+              onClick={() => { setOpen(false); signOut(); }}
+              className="w-full text-left px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              退出登录 / Sign Out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function AppContent() {
   const { state, t } = useApp();
@@ -201,6 +240,7 @@ function AppContent() {
                 {t('设置', 'Settings')}
               </Button>
               <LanguageSwitch />
+              <UserMenu />
             </div>
           </div>
         </div>
@@ -397,11 +437,36 @@ function AppContent() {
   );
 }
 
-function App() {
+function AuthenticatedApp() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen lab-surface flex items-center justify-center">
+        <div className="clay-card p-8 text-center space-y-3 lab-animate">
+          <div className="text-4xl">🧪</div>
+          <p className="text-slate-600">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
-    <AppProvider>
+    <AppProvider userId={user.id}>
       <AppContent />
     </AppProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 }
 
